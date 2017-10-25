@@ -1,38 +1,13 @@
-/* Copyright 2016, Eric Pernia.
- * All rights reserved.
+/*
  *
- * This file is part sAPI library for microcontrollers.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
  *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
  *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * 3. Neither the name of the copyright holder nor the names of its
- *    contributors may be used to endorse or promote products derived from this
- *    software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
  *
  */
 
 /*
- * Date: 2016-04-26
+ * Date: 2017-10-25
  */
 
 /*==================[inclusions]=============================================*/
@@ -40,11 +15,11 @@
 #include "main.h"   	// <= own header (optional)
 #include "sapi.h"       // <= sAPI header
 
-//#include "ff.h"       		// <= Biblioteca FAT FS
+#include "ff.h"       		// <= Biblioteca FAT FS
 #include "fatfs_stubs.h"	// En este archivo se setea si sacar datos por SD o UART
 
 /*==================[macros and definitions]=================================*/
-#define LONGITUD_DATOS_RTC   (19)
+#define LONGITUD_DATOS_RTC   (20)
 #define FILENAME "hola.txt"
 /*==================[internal data declaration]==============================*/
 
@@ -68,7 +43,7 @@ int main(void){
 	rtc_t rtc;
 	uint8_t datosRTC [LONGITUD_DATOS_RTC];
 	uint8_t datosADC [5];
-	uint8_t datosAlmacenar [100];
+	uint8_t datosAlmacenar [30];
 
 	// Variable para almacenar el valor leido del ADC CH1
 	uint16_t adcValue = 0;
@@ -100,7 +75,7 @@ int main(void){
 
 
     // Habilita la interrupcion del tick cada 10 ms y cuando ocurre llama a diskTickHook()
-   	tickConfig( 10, NULL );
+   //	tickConfig( 10, NULL );
    	delayConfig ( &delay1s, 1000 );
 
 
@@ -137,12 +112,12 @@ int main(void){
 		   	// FA_CREATE_ALWAYS se sobreescribe el archivo. FA_OPEN_APPEND el nuevo contenido se escribe al final.
 		   	if( f_open_( &File, FILENAME, FA_WRITE | FA_OPEN_APPEND ) == FR_OK ){
 		   		// Escribe en el archivo abierto el texto "Hola mundo\n\r".
-		   		f_write_( &File, "Hola mundo", 24, &bytesWritten );           //"Hola mundo\r\n"
-//(char *) datosAlmacenar
+		   		f_write_( &File, (char *) datosAlmacenar, 27, &bytesWritten );           //"Hola mundo\r\n"
+
 				// Una vez que escribio cierra el archivo.
 				f_close_(&File);
 				// Chequea si los bytes escritos son iguales a los que se pidio escribir.
-				if( bytesWritten == 24 ){
+				if( bytesWritten == 27 ){
 					// Si salio todo bien prende el LED verde
 					gpioWrite( LEDG, ON );
 
@@ -210,7 +185,6 @@ void formatInfoAlmacenar ( uint8_t *cadenaDestino, uint8_t *cadenaOrigen, uint8_
 		while ( cadenaDestino[i] != '\n' )
 			i++;
 		cadenaDestino[i] = ';';
-		//cadenaDestino[i+1] = ' ';
 		i++;
 	}
 
