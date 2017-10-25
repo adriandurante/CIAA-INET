@@ -111,7 +111,7 @@ int main(void){
 
 
    	while(1) {
-
+   	   datosAlmacenar[0] = '\0';
 	   if( delayRead( &delay1s ) ){
 	   		// Actualiza el clock a la nueva hora.
 	   		rtcRead( &rtc );
@@ -132,26 +132,27 @@ int main(void){
 		   	// uartWriteString(UART_USB, datosRTC);
 
 		   	formatInfoAlmacenar (datosAlmacenar, datosADC, 100);
-		   	formatInfoAlmacenar (datosAlmacenar, datosRTC, 100);
+		  	formatInfoAlmacenar (datosAlmacenar, datosRTC, 100);
 
 		   	// FA_CREATE_ALWAYS se sobreescribe el archivo. FA_OPEN_APPEND el nuevo contenido se escribe al final.
 		   	if( f_open_( &File, FILENAME, FA_WRITE | FA_OPEN_APPEND ) == FR_OK ){
 		   		// Escribe en el archivo abierto el texto "Hola mundo\n\r".
-		   		f_write_( &File, (char *) datosAlmacenar, 50, &bytesWritten );           //"Hola mundo\r\n"
-
+		   		f_write_( &File, "Hola mundo", 24, &bytesWritten );           //"Hola mundo\r\n"
+//(char *) datosAlmacenar
 				// Una vez que escribio cierra el archivo.
 				f_close_(&File);
 				// Chequea si los bytes escritos son iguales a los que se pidio escribir.
-				if( bytesWritten == 50 ){
+				if( bytesWritten == 24 ){
 					// Si salio todo bien prende el LED verde
 					gpioWrite( LEDG, ON );
-					datosAlmacenar[0] = '\0';
+
 				}
 			}
 		   	else {
 				// Si la operacion fallo prende el LED rojo.
 				gpioWrite( LEDR, ON );
 			}
+
 	   }
    }
    return 0 ;
