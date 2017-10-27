@@ -53,12 +53,12 @@ uint8_t apiProcessInformation(uint16_t dataTemp, uint16_t dataHum, uint16_t data
 	uint8_t sensorData[5];
 	destiny[0]= '\0';
 	// Formatea el array InformationArray con el valor leido del potenciometro.
-	FormatInformationArray(dataTemp, sensorData);
-	formatInfoAlmacenar (destiny, sensorData, 100);
-	FormatInformationArray(dataHum, sensorData);
-	formatInfoAlmacenar (destiny, sensorData, 100);
-	FormatInformationArray(dataWind, sensorData);
-	formatInfoAlmacenar (destiny, sensorData, 100);
+	FormatInformationArray 	(dataTemp, sensorData);
+	formatInfoAlmacenar		(destiny,  sensorData, 100);
+	FormatInformationArray	(dataHum,  sensorData);
+	formatInfoAlmacenar		(destiny,  sensorData, 100);
+	FormatInformationArray	(dataWind, sensorData);
+	formatInfoAlmacenar		(destiny,  sensorData, 100);
 
 	return _API_STATE_OK;
 }
