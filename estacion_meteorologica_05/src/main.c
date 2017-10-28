@@ -60,10 +60,7 @@ int main( void ){
 
 		apiReadSensor(&sensorTempValue, &sensorHumValue, &sensorWindValue);
 
-		apiProcessInformation(sensorTempValue,
-				sensorHumValue,
-				sensorWindValue,
-				bufferDataLog);
+		apiProcessInformation( bufferDataLog );
 
 		apiWriteSD(_SYS_CFG_DATALOG_FILENAME, bufferDataLog);
 
