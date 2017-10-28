@@ -32,13 +32,15 @@ uint8_t apiSD_Init(void) {
 }
 
 uint8_t apiSD_Write(uint8_t * strDatalogFilename, uint8_t * stringData) {
-	uint32_t bytesWritten;
+	uint32_t bytesWritten, bytesToWrite;
 
+
+	bytesToWrite = strlen (stringData);
 	/************* FAT WRITE **************/
 	if( f_open( &File, (char *) strDatalogFilename, FA_WRITE | FA_OPEN_APPEND ) == FR_OK ){
-		f_write(&File, (char *) stringData, 17, &bytesWritten );
+		f_write(&File, (char *) stringData, bytesToWrite-1, &bytesWritten );
 		f_close(&File);
-		if( bytesWritten == 17 ){
+		if( bytesWritten == bytesToWrite-1 ){
 			// OK
 			return _API_STATE_OK;
 		}

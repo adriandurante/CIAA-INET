@@ -51,6 +51,9 @@ int main( void ){
 	RutinaBienvenida();
 	apiSensorSetup ();
 
+
+	uartWriteString( UART_USB, "\n\r------------------------------------------" );
+	uartWriteString( UART_USB, "\n\rComenzo el muestreo. Ingrese 'S' para finalizar" );
 	while( samplingEnd == FALSE ) {
 		delay(samplingTime);
 
@@ -64,7 +67,7 @@ int main( void ){
 		apiWriteSD(_SYS_CFG_DATALOG_FILENAME, bufferDataLog);
 
 		if( uartReadByte( UART_USB, &dataUart ) ){
-			if ( dataUart == 'S' ) {
+			if ( dataUart == 'S' || dataUart == 's') {
 				samplingEnd = TRUE;
 			}
 		}
