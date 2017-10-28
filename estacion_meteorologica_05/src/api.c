@@ -10,8 +10,8 @@
 #include "apiSD.h"
 
 static void FormatInformationArray(uint16_t valor, uint8_t * destiny, uint8_t pos);
-sensorData_t  sensorDataArray[3];
-sensorSetup_t sensorSetupArray[3];
+sensorData  sensorDataArray[3];
+sensorSetup sensorSetupArray[3];
 
 
 CONSOLE_PRINT_ENABLE
@@ -150,7 +150,7 @@ uint8_t apiSamplingTimeSetup ( void ) {
 
 	uartWriteString( UART_USB, "\n\rIngrese el tiempo de muestreo de datos: ");
 
-	uartReadInt	( UART_USB, &samplingTime );
+	uartReadUint16	( UART_USB, &samplingTime );
 
 	return _API_STATE_OK;
 }
@@ -160,7 +160,7 @@ uint8_t apiNumberOfSensorSetup ( void ) {
 
 	uartWriteString( UART_USB, "\n\rIngrese la cantidad de sensores: ");
 
-	uartReadInt	( UART_USB, &numberOfSensor );
+	uartReadUint8	( UART_USB, &numberOfSensor );
 
 	return _API_STATE_OK;
 }
@@ -226,7 +226,7 @@ uint8_t uartReadString( uartMap_t uart, uint8_t* receivedString, uint8_t lengthS
 
 
 
-uint8_t uartReadInt	( uartMap_t uart, uint16_t* receivedNumber ) {
+uint8_t uartReadUint16	( uartMap_t uart, uint16_t* receivedNumber ) {
 
 	uint8_t caracterNumber = 0, dataUartByte, dataUartString[11];
 	bool_t numberEntry = FALSE;
@@ -249,6 +249,31 @@ uint8_t uartReadInt	( uartMap_t uart, uint16_t* receivedNumber ) {
 	*receivedNumber = atol ( dataUartString );
 	return _API_STATE_OK;
 }
+
+uint8_t uartReadUint8	( uartMap_t uart, uint8_t* receivedNumber ) {
+
+	uint8_t caracterNumber = 0, dataUartByte, dataUartString[6];
+	bool_t numberEntry = FALSE;
+
+	while (numberEntry == FALSE) {
+		if( uartReadByte( uart, &dataUartByte )) {
+			if ( caracterNumber != 0 || dataUartByte != '0' )			// Controla que el dato no empiece con un 0.
+				if ( isNumber ( dataUartByte ) ) {	// Controla que sea un número de 0 a 9
+					dataUartString[caracterNumber] = dataUartByte;		// y lo almacena en el array.
+					uartWriteByte( uart, dataUartByte);					// Echo del caracter ingresado.
+					caracterNumber++;
+				}
+			if ( dataUartByte == 13 || caracterNumber == 5) {
+				numberEntry = TRUE;
+				dataUartString[caracterNumber] = '\0';
+			}
+		}
+	}
+
+	*receivedNumber = atol ( dataUartString );
+	return _API_STATE_OK;
+}
+
 
 
 
@@ -304,3 +329,57 @@ bool_t  isNumber ( uint8_t dataByte ) {
 	return dataOK;
 }
 
+
+uint8_t apiSetTime ( rtc_t *rtc) {
+
+	// Setea hora
+	uartWriteString ( UART_USB, "\n\rIngrese el dia: ");
+	uartReadUint8 ( UART_USB, &(rtc->mday) );
+	uartWriteString ( UART_USB, "\n\rIngrese el mes: ");
+	uartReadUint8 ( UART_USB, &(rtc->month) );
+	uartWriteString ( UART_USB, "\n\rIngrese el año: ");
+	uartReadUint16 ( UART_USB, &(rtc->year) );
+	uartWriteString ( UART_USB, "\n\rIngrese la hora: ");
+	uartReadUint8 ( UART_USB, &(rtc->hour) );
+	uartWriteString ( UART_USB, "\n\rIngrese los minutos: ");
+	uartReadUint8 ( UART_USB, &(rtc->min) );
+
+	rtcWrite( rtc);
+	return _API_STATE_OK;
+}
+
+
+uint8_t apiRtcInicialize ( void ) {
+	rtc_t rtc;
+	uint8_t dataUart;
+
+	rtcRead ( &rtc );
+
+	uartWriteString ( UART_USB, "\n\rLa hora actual del sistema es: ");
+	consolePrintInt (rtc.hour);
+	uartWriteByte ( UART_USB, ':');
+	consolePrintInt (rtc.min);
+	uartWriteByte ( UART_USB, ':');
+	consolePrintInt (rtc.sec);
+
+	uartWriteString ( UART_USB, "\n\rLa fecha actual del sistema es: ");
+	consolePrintInt (rtc.mday);
+	uartWriteByte ( UART_USB, '/');
+	consolePrintInt (rtc.month);
+	uartWriteByte ( UART_USB, '/');
+	consolePrintInt (rtc.year);
+
+
+	uartWriteString( UART_USB, "\n\r\n\r¿Desea cambiarla? ('S' o 'N'): ");
+	do {
+		uartReadByte( UART_USB, &dataUart );
+		if ( dataUart >= 'A' && dataUart <= 'Z')
+			dataUart += 32;
+	} while ( dataUart != 's' && dataUart != 'n');
+	if( dataUart == 's') {
+		apiSetTime ( &rtc );
+	}
+	uartWriteString ( UART_USB, "\n\r\n\r----------------------------------------------");
+	//uartWriteString( UART_USB, "\n\rLa hora actual del sistema es: ");
+	return _API_STATE_OK;
+}

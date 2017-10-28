@@ -27,7 +27,7 @@ configuración que fueron listadas
 #include "main.h"
 
 
-/* configuración de mi aplicación */
+/* configuraciÃ³n de mi aplicaciÃ³n */
 #define _SYS_CFG_DATALOG_FILENAME 	"datalog.txt"
 //#define _SYS_CFG_SAMPLINGTIME		(1000)
 #define UART_BAUDRATE				(115200)
@@ -48,10 +48,9 @@ int main( void ){
 	spiConfig(SPI0);
 	tickConfig(10, diskTickHook);
 
-
 	RutinaBienvenida();
+	apiRtcInicialize ();
 	apiSensorSetup ();
-
 
 
 	uartWriteString( UART_USB, "\n\r------------------------------------------" );

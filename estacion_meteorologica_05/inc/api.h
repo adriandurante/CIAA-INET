@@ -16,13 +16,13 @@ typedef struct {
 	uint8_t  name [20];
 	uint8_t  id;
 	bool_t   enable;
-} sensorSetup_t;
+} sensorSetup;
 
 typedef struct sensorData {
 	uint8_t  id;
 	uint16_t rawValue;
 	float    formattedValue;
-} sensorData_t;
+} sensorData;
 
 uint8_t  numberOfSensor;
 uint16_t samplingTime;
@@ -41,12 +41,14 @@ uint8_t apiSensorSetup 				( void );
 uint8_t apiSamplingTimeSetup		( void );
 uint8_t apiSensorEnable				( void );
 uint8_t apiNumberOfSensorSetup		( void );
-
+uint8_t apiSetTime					( rtc_t *rtc);
+uint8_t apiRtcInicialize 			( void );
 
 bool_t  isCaracter					( uint8_t dataByte );
 bool_t  isNumber					( uint8_t dataByte );
 
 uint8_t uartReadString				( uartMap_t uart, uint8_t* receivedString, uint8_t lengthString );
-uint8_t uartReadInt					( uartMap_t uart, uint16_t* receivedNumber );
+uint8_t uartReadUint16				( uartMap_t uart, uint16_t* receivedNumber );
+uint8_t uartReadUint8				( uartMap_t uart, uint8_t* receivedNumber );
 
 #endif /* API_H_ */
