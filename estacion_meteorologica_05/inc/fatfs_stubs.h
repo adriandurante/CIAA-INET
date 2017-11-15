@@ -52,8 +52,8 @@ extern "C" {
  * o no se cuenta con la memoria SD.
  */
 
-//#define SD_ENABLE
-#define SD_DISABLE
+#define SD_ENABLE
+//#define SD_DISABLE
 
 #define UART_SD_EMULATED	UART_USB
 #define UART_SD_BAUDRATE	115200

@@ -11,7 +11,9 @@
 #include "sapi.h"
 #include "apiSD.h"
 
-typedef struct {
+typedef enum { INICIAL_STATE, RUN_STATE, CONFIGURATION_STATE, } meteoStationMEF_Status_t;
+
+typedef struct sensorSetup {
 	uint8_t  name [20];
 	uint8_t  id;
 	uint8_t  sensorType;

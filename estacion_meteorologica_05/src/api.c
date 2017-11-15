@@ -8,6 +8,8 @@
 #include "sapi.h"
 #include "api.h"
 #include "apiSD.h"
+#include "dht11.h"
+
 
 static void FormatInformationArray(uint16_t valor, uint8_t * destiny, uint8_t pos);
 sensorData_t  sensorDataArray[3];
@@ -17,22 +19,38 @@ sensorSetup_t sensorSetupArray[3];
 CONSOLE_PRINT_ENABLE
 
 uint8_t apiReadTemperatureHumdity(uint16_t * dataTemp, uint16_t * dataHum) {
-	uint16_t adcValue1, adcValue2;
+	float temp, hum, decimals;
+	bool_t errorStatus;
 
-	adcValue1 = adcRead(CH1); // temp
-	(*dataTemp) = adcValue1;
+	dht11_Init();
 
-	adcValue2 = adcRead(CH2); // hum
-	(*dataHum) = adcValue2;
+	if(TRUE == dht11_Read(&hum, &temp)) {
+		//*dataTemp = round(temp);      // utilizando la función round() de math.h
+		//*dataHum =  round(hum);
 
-	return _API_STATE_OK;
+		decimals = temp - (uint16_t) temp;
+		*dataTemp = (decimals >= 0) ? (uint16_t)(temp + 0.5) : (uint16_t)(temp - 0.5);
+		decimals = hum - (uint16_t) hum;
+		*dataHum  = (decimals >= 0) ? (uint16_t)(hum + 0.5) : (uint16_t)(hum - 0.5);
+		errorStatus = _API_STATE_OK;
+	} else
+		errorStatus = _API_STATE_ERROR;
+
+	//adcValue1 = adcRead(CH1); // temp
+	//(*dataTemp) = adcValue1;
+
+	//adcValue2 = adcRead(CH2); // hum
+	//(*dataHum) = adcValue2;
+
+	return errorStatus;
+
 }
 
 uint8_t apiReadWind(uint16_t * dataWind) {
-	uint16_t adcValue3 = 0;
+	uint16_t adcValue1 = 0;
 
-	adcValue3 = adcRead(CH3); // viento
-	(*dataWind) = adcValue3;
+	adcValue1= adcRead(CH1); // viento
+	(*dataWind) = adcValue1;
 
 	return _API_STATE_OK;
 }
@@ -111,6 +129,8 @@ uint8_t apiProcessInformation( uint8_t * destiny ) {
 
 	return _API_STATE_OK;
 }
+
+
 
 uint8_t apiWriteSD(uint8_t * filename, uint8_t * stringData) {
 
@@ -300,7 +320,7 @@ uint8_t apiSetTime ( rtc_t *rtc) {
 	uartWriteString ( UART_USB, "\n\rIngrese los minutos: ");
 	uartReadUint8 ( UART_USB, &(rtc->min) );
 
-	rtcWrite( rtc);
+	rtcConfig( rtc);
 	return _API_STATE_OK;
 }
 
