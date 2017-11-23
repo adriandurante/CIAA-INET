@@ -9,6 +9,37 @@
 #include "api.h"
 #include "apiSD.h"
 #include "dht11.h"
+//#include "sapi_esp8266HttpServer.h"
+#include "sapi_stdio.h"
+
+
+
+const char HttpWebPageHeader [] =
+		"<!DOCTYPE HTML>"
+		"<html>"
+		"<head><title>EDU-CIAA NXP</title>"
+		"<meta http-equiv=\"refresh\" content=\"15\">"
+		"</head>"
+		"<p style=\"text-align: center;\">&nbsp;</p>"
+		"<p style=\"text-align: center;\"><span style=\"color: #0000ff;\"><strong><img src=\"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT2moZZ0qZ5Az_Qt4kRv6NsJtIxKJl8phyn0APAyfsshhpvpjPs\" alt=\"Logo\" width=\"135\" height=\"135\" /></strong></span></p>"
+		"<h1 style=\"text-align: center;\"><span style=\"color: #0000ff;\"><strong>Servidor Web HTTP<br />ESP8266 - EDU CIAA NXP</strong></span></h1>"
+		"<h4 style=\"text-align: center;\"><strong><em>En esta pagina web se muestran datos provenientes de la EDU-CIAA NXP</em></strong><br /><strong><em>enviados cuando un cliente HTTP como esta pagina realiza una peticion al servidor</em></strong></h4>"
+		"<p style=\"text-align: center;\">&nbsp;</p>"
+		"<h3 style=\"text-align: center;\"><span style=\"color: #000080;\"><strong>Estaci&oacute;n Meteorol&oacute;gica</strong></span></h3>"
+		"<p style=\"text-align: center;\">&nbsp;</p>"
+//		"<body bgcolor=\"#E2E1E3\"></body>"
+		;
+
+const char HttpWebPageEnd [] =
+		"<p style=\"text-align: center;\">&nbsp;</p>"
+		"<p style=\"text-align: center;\">&nbsp;</p>"
+		"<hr />"
+		"<p style=\"text-align: center;\"><em>Copyright&nbsp;Agustin Bassi -&nbsp;</em><em>Pablo Gomez</em></p>"
+		"<p style=\"text-align: center;\">CURSOS INET 2017</p>"
+		"<p style=\"text-align: center;\"><a href=\"http://www.proyecto-ciaa.com.ar\">www.proyecto-ciaa.com.ar</a></p>"
+		"</html>";
+
+char HttpWebPageBody [200];
 
 
 static void FormatInformationArray(uint16_t valor, uint8_t * destiny, uint8_t pos);
@@ -132,12 +163,12 @@ uint8_t apiProcessInformation( uint8_t * destiny ) {
 
 
 
-uint8_t apiWriteSD(uint8_t * filename, uint8_t * stringData) {
+uint8_t apiWriteSD(uint8_t * filename, uint8_t * stringData, uint32_t * size) {
 
 	if(apiSD_Init() == _API_STATE_ERROR) {
 		// error
 	} else {
-		if(apiSD_Write(filename, stringData) == _API_STATE_ERROR) {
+		if(apiSD_Write(filename, stringData, size) == _API_STATE_ERROR) {
 			// error
 			gpioWrite( LEDR, ON );
 		} else {
@@ -147,7 +178,6 @@ uint8_t apiWriteSD(uint8_t * filename, uint8_t * stringData) {
 	}
 	return _API_STATE_OK;
 }
-
 
 
 uint8_t apiSensorSetup ( void ){
@@ -192,9 +222,10 @@ uint8_t apiSensorNameSetup (void) {
 
 uint8_t apiSamplingTimeSetup ( void ) {
 
-	uartWriteString( UART_USB, "\n\rIngrese el tiempo de muestreo de datos: ");
-
-	uartReadUint16	( UART_USB, &samplingTime );
+	do {
+		uartWriteString( UART_USB, "\n\rIngrese el tiempo de muestreo de datos: ");
+		uartReadUint16	( UART_USB, &samplingTime );
+	} while (apiDataValidate( samplingTime, _SYS_CFG_MIN_SAMPLINGTIME, _SYS_CFG_MAX_SAMPLINGTIME ));
 
 	return _API_STATE_OK;
 }
@@ -202,9 +233,10 @@ uint8_t apiSamplingTimeSetup ( void ) {
 
 uint8_t apiNumberOfSensorSetup ( void ) {
 
-	uartWriteString( UART_USB, "\n\rIngrese la cantidad de sensores: ");
-
-	uartReadUint8	( UART_USB, &numberOfSensor );
+	do {
+		uartWriteString( UART_USB, "\n\rIngrese la cantidad de sensores: ");
+		uartReadUint8	( UART_USB, &numberOfSensor );
+	} while ( apiDataValidate(numberOfSensor, 1, 6 ));
 
 	return _API_STATE_OK;
 }
@@ -257,7 +289,7 @@ uint8_t apiSensorEnable	( void ) {
 	consolePrintString("\n\r--------------------------------------------------------------------------");
     consolePrintString("\n\r\n\rPresione la tecla indicada para activar o desactivar cada sensor: \n\r");
     consolePrintString("\n\rActivar sensores");
-    consolePrintlnString("\n\rIngrese '0' para finalizar la configuración y comenzar el muestreo. \n\r");
+    consolePrintlnString("\n\rIngrese '0' para finalizar la configuracion y comenzar el muestreo. \n\r");
     for( sensorNumber = 0 ; sensorNumber < numberOfSensor ; sensorNumber++) {
 	    uartWriteByte( UART_USB, sensorSetupArray[sensorNumber].name[0]);
 	    consolePrintString(" -> ");
@@ -309,17 +341,32 @@ bool_t  isNumber ( uint8_t dataByte ) {
 uint8_t apiSetTime ( rtc_t *rtc) {
 
 	// Setea fecha y hora
-	uartWriteString ( UART_USB, "\n\rIngrese el dia: ");
-	uartReadUint8 ( UART_USB, &(rtc->mday) );
-	uartWriteString ( UART_USB, "\n\rIngrese el mes: ");
-	uartReadUint8 ( UART_USB, &(rtc->month) );
-	uartWriteString ( UART_USB, "\n\rIngrese el año: ");
-	uartReadUint16 ( UART_USB, &(rtc->year) );
-	uartWriteString ( UART_USB, "\n\rIngrese la hora: ");
-	uartReadUint8 ( UART_USB, &(rtc->hour) );
-	uartWriteString ( UART_USB, "\n\rIngrese los minutos: ");
-	uartReadUint8 ( UART_USB, &(rtc->min) );
+	do {
+		uartWriteString ( UART_USB, "\n\rIngrese el dia: ");
+		uartReadUint8 ( UART_USB, &(rtc->mday) );
+	} while ( apiDataValidate ( rtc->mday, 1, 31) );
 
+	do {
+		uartWriteString ( UART_USB, "\n\rIngrese el mes: ");
+		uartReadUint8 ( UART_USB, &(rtc->month) );
+	} while ( apiDataValidate ( rtc->month, 1, 12) );
+
+	do {
+		uartWriteString ( UART_USB, "\n\rIngrese el año: ");
+		uartReadUint16 ( UART_USB, &(rtc->year) );
+	} while ( apiDataValidate ( rtc->year, 1970, 2025) );
+
+	do {
+		uartWriteString ( UART_USB, "\n\rIngrese la hora: ");
+		uartReadUint8 ( UART_USB, &(rtc->hour) );
+	} while ( apiDataValidate ( rtc->hour, 0, 23) );
+
+	do {
+		uartWriteString ( UART_USB, "\n\rIngrese los minutos: ");
+		uartReadUint8 ( UART_USB, &(rtc->min) );
+	} while ( apiDataValidate ( rtc->min, 0, 59) );
+
+	uartWriteString ( UART_USB, "\n\r\n\rEspere. Configurando fecha y hora... ");
 	rtcConfig( rtc);
 	return _API_STATE_OK;
 }
@@ -368,3 +415,90 @@ uint8_t apiDisplayDate ( rtc_t *rtc ) {
 	return _API_STATE_OK;
 }
 
+
+bool_t apiDataValidate ( uint16_t data, uint16_t minRange, uint16_t maxRange) {
+	bool_t errorState;
+
+	if ( data < minRange || data > maxRange ) {
+		stdioPrintf(UART_USB, "\rError el dato debe estar entre %d y %d", minRange, maxRange);
+		errorState = TRUE;
+	}
+	else {
+		errorState = FALSE;
+	}
+
+	return errorState;
+}
+
+
+uint8_t apiWifiInitialize (void){
+	bool_t errorStatus;
+	delay_t wifiDelay;
+
+
+	// Envia un mensaje de bienvenida.
+	stdioPrintf(UART_USB, "\n\rBienvenido al servidor HTTP Esp8266 con EDU CIAA");
+	stdioPrintf(UART_USB, "\n\rLa configuracion puede tardar hasta 1 minuto.");
+
+	errorStatus = FALSE;
+	// Configura un delay para salir de la configuracion en caso de error.
+	delayConfig(&wifiDelay, WIFI_MAX_DELAY);
+
+	// Mientras no termine la configuracion o mientras no pase el tiempo maximo, ejecuta la configuracion.
+	// A la configuracion se le pasa nombre y contrasenia de RED
+	while (!esp8266ConfigHttpServer(WIFI_NAME, WIFI_PASS) && !errorStatus){
+		if (delayRead(&wifiDelay)){
+			errorStatus = TRUE;
+		}
+	}
+
+	// Avisa al usuario como salio la configuracion
+	if (!errorStatus){
+		stdioPrintf(UART_USB, "\n\rServidor HTTP configurado. IP: %s", esp8266GetIpAddress());
+		// Enciende LEDG indicando que el modulo esta configurado.
+		gpioWrite(LEDG, TRUE);
+	} else {
+		stdioPrintf(UART_USB, "\n\rError al configurar servidor HTTP.");
+		// Enciende LEDR indicando que el modulo esta en error.
+		gpioWrite(LEDR, TRUE);
+	}
+	return _API_STATE_OK;
+
+}
+
+
+
+uint8_t apiWifiTransmission	( uint16_t dataTemp, uint16_t dataHum, uint16_t dataWind ) {
+	bool_t errorStatus;
+	delay_t wifiDelay;
+
+
+	// Si llego una peticion al servidor http
+
+	// Los datos a enviar a la web deben estar en formato HTML. Notar que
+	// BEGIN_USER_LINE y END_USER_LINE solo formatean la cadena a enviar con tags HTML.
+	stdioSprintf(HttpWebPageBody, "%s Temperatura: %d - Humedad: %d - Viento: %d %s", BEGIN_USER_LINE, dataTemp, dataHum, dataWind, END_USER_LINE);
+
+	errorStatus = FALSE;
+	// Configura un delay para salir de la configuracion en caso de error.
+	delayConfig(&wifiDelay, WIFI_MAX_DELAY);
+
+	// Mientras no termine el envio o mientras no pase el tiempo maximo, ejecuta el envio.
+	while (!esp8266WriteHttpServer(HttpWebPageHeader, HttpWebPageBody, HttpWebPageEnd) && !errorStatus){
+		if (delayRead(&wifiDelay)){
+			errorStatus = TRUE;
+		}
+	}
+
+	// Avisa al usuario como fue el envio
+	if (!errorStatus){
+		stdioPrintf(UART_USB, "\n\rPeticion respondida al cliente HTTP %d.", esp8266GetConnectionId());
+		gpioToggle(LEDG);
+	} else {
+		stdioPrintf(UART_USB, "\n\rPeticion respondida al cliente HTTP %d.", esp8266GetConnectionId());
+		gpioToggle(LEDR);
+	}
+
+
+	return _API_STATE_OK ;
+}

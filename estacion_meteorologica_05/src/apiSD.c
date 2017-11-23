@@ -12,10 +12,12 @@
 
 static FATFS FileSystem;
 static FIL   File;
+extern volatile bool_t flagTick;
 
 bool_t diskTickHook( void *ptr ){
 	// Disk timer process
 	disk_timerproc();
+	flagTick = ON;
 	return 1;
 }
 /***************************/
@@ -31,7 +33,7 @@ uint8_t apiSD_Init(void) {
 	return _API_STATE_OK;
 }
 
-uint8_t apiSD_Write(uint8_t * strDatalogFilename, uint8_t * stringData) {
+uint8_t apiSD_Write(uint8_t * strDatalogFilename, uint8_t * stringData, uint32_t *size) {
 	uint32_t bytesWritten, bytesToWrite;
 
 	bytesToWrite = strlen (stringData) - 1;				// Calcula la cantidad de bytes a almacenar,
@@ -39,6 +41,7 @@ uint8_t apiSD_Write(uint8_t * strDatalogFilename, uint8_t * stringData) {
 	/************* FAT WRITE **************/
 	if( f_open_( &File, (char *) strDatalogFilename, FA_WRITE | FA_OPEN_APPEND ) == FR_OK ){
 		f_write_(&File, (char *) stringData, bytesToWrite, &bytesWritten );
+		*size = f_size (&File);
 		f_close_(&File);
 		if( bytesWritten == bytesToWrite ){
 			// OK
@@ -50,6 +53,7 @@ uint8_t apiSD_Write(uint8_t * strDatalogFilename, uint8_t * stringData) {
 	}
 	return 0;
 }
+
 /***************************/
 
 

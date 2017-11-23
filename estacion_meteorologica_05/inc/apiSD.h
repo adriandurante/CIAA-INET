@@ -21,8 +21,9 @@ bool_t 		diskTickHook	( void *ptr );
 /***************************/
 
 /************* SD **************/
-uint8_t 	apiSD_Init		(void);
-uint8_t 	apiSD_Write		(uint8_t * strDatalogFilename, uint8_t * stringData);
+uint8_t 	apiSD_Init		( void );
+uint8_t 	apiSD_Write		( uint8_t * strDatalogFilename, uint8_t * stringData, uint32_t * size );
+
 /***************************/
 
 

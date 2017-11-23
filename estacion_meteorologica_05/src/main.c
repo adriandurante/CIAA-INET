@@ -27,9 +27,10 @@ configuración que fueron listadas
 #include "main.h"
 
 
-/* configuraciÃ³n de mi aplicaciÃ³n */
+/* configuracion de mi aplicacion */
 #define _SYS_CFG_DATALOG_FILENAME 	"datalog.txt"
-//#define _SYS_CFG_SAMPLINGTIME		(1000)
+#define _SYS_CFG_DATALOG_MAX_SIZE	1048576
+
 #define UART_BAUDRATE				(115200)
 
 
@@ -37,20 +38,22 @@ uint8_t meteoStationMEF_Itialize 	( meteoStationMEF_Status_t *estado );
 uint8_t meteoStationMEF_Actualize	( meteoStationMEF_Status_t *estado );
 
 extern uint16_t samplingTime;
-
+delay_t samplingDelay;
+volatile bool_t flagTick;
 
 /************* APLICACION **************/
 int main( void ){
 
 	meteoStationMEF_Status_t meteoStationMEF_ActualState;
 	bool_t samplingEnd = FALSE;
-	uint8_t dataUart;
+	uint16_t sensorTempValue, sensorHumValue, sensorWindValue;
 
 	boardConfig();
 	uartConfig(UART_USB, UART_BAUDRATE);
 	adcConfig(ADC_ENABLE);
 	spiConfig(SPI0);
-	tickConfig(10, diskTickHook);
+	// Configuración SysTick
+	tickConfig( 10, diskTickHook );
 
 
 
@@ -62,25 +65,17 @@ int main( void ){
 	uartWriteString( UART_USB, "\n\r------------------------------------------" );
 	uartWriteString( UART_USB, "\n\rComenzo el muestreo. Ingrese 'S' para finalizar" );
 
-
-
 	while( samplingEnd == FALSE ) {
-
 		meteoStationMEF_Actualize ( &meteoStationMEF_ActualState );
-		//if(ON == flagTick) {
-		//	flagTick = OFF;
 
-			delay(samplingTime);
-			if( uartReadByte( UART_USB, &dataUart ) ){
-				if ( dataUart == 'S' || dataUart == 's') {
-					samplingEnd = TRUE;
-				}
-			}
-		//}
+		if ( esp8266ReadHttpServer() ) {
+			gpioWrite (LED2, ON);
+			apiReadSensor ( &sensorTempValue, &sensorHumValue, &sensorWindValue );
+			apiWifiTransmission ( sensorTempValue, sensorHumValue, sensorWindValue );
+			gpioWrite (LED2, OFF);
+		}
+
 	}
-	uartWriteString( UART_USB, "\n\rFinalizo el muestreo." );
-	//Espera que haya una interrupcion y pone el procesador en bajo consumo.
-	sleepUntilNextInterrupt();
 
 	return 0;
 }
@@ -90,28 +85,42 @@ int main( void ){
 uint8_t meteoStationMEF_Itialize ( meteoStationMEF_Status_t *actualState ) {
 
 	*actualState = INICIAL_STATE;
+	return 1;
 }
 
 
 uint8_t meteoStationMEF_Actualize ( meteoStationMEF_Status_t *actualState ) {
 	uint16_t sensorTempValue, sensorHumValue, sensorWindValue;
 	uint8_t bufferDataLog[128];
-
+	uint32_t fileSize;
 
 	switch ( *actualState ) {
 		case INICIAL_STATE:			RutinaBienvenida();
 									apiRtcInicialize ();
 									apiSensorSetup ();
+									apiWifiInitialize ();
+									delayConfig(&samplingDelay, samplingTime);
 									*actualState = RUN_STATE;
 									break;
 
-		case RUN_STATE:				apiReadSensor(&sensorTempValue, &sensorHumValue, &sensorWindValue);
-									apiProcessInformation( bufferDataLog );
-									apiWriteSD(_SYS_CFG_DATALOG_FILENAME, bufferDataLog);
+		case RUN_STATE:				if ( delayRead(&samplingDelay) ) {
+										apiReadSensor(&sensorTempValue, &sensorHumValue, &sensorWindValue);
+										apiProcessInformation( bufferDataLog );
+										apiWriteSD(_SYS_CFG_DATALOG_FILENAME, bufferDataLog, &fileSize);
+										gpioToggle (LED1);
+
+										if ( _SYS_CFG_DATALOG_MAX_SIZE < fileSize )
+											*actualState = TRANSMISSION_STATE;
+									}
 
 									break;
-
+		case TRANSMISSION_STATE:	gpioWrite (LED3, ON);
+									// Acá debería ir la rutina de transmision
+									// que envía los datos almacenados al servidor.
+									gpioWrite (LED3, OFF);
+									break;
 		case CONFIGURATION_STATE:	break;
 		default: 					*actualState = INICIAL_STATE;
 	}
+	return 1;
 }
